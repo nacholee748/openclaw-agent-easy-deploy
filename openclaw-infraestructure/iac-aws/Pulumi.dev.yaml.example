@@ -1,0 +1,15 @@
+# =============================================================================
+# Ejemplo de configuración del stack Pulumi
+# =============================================================================
+# Copia este archivo como Pulumi.dev.yaml y ajusta los valores.
+# O usa los comandos de pulumi config:
+#
+#   pulumi config set myIp $(curl -s https://checkip.amazonaws.com)
+#   pulumi config set awsProfile tu-profile
+#   pulumi config set awsRegion us-east-1
+# =============================================================================
+
+config:
+  openclaw-infra:awsProfile: tu-profile-aws
+  openclaw-infra:awsRegion: us-east-1
+  openclaw-infra:myIp: "TU_IP_PUBLICA"

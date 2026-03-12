@@ -1,0 +1,14 @@
+services:
+  openclaw:
+    build: .
+    container_name: openclaw-agent
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./config/openclaw.env
+    volumes:
+      - openclaw-data:/home/openclaw/.openclaw
+    restart: unless-stopped
+
+volumes:
+  openclaw-data:

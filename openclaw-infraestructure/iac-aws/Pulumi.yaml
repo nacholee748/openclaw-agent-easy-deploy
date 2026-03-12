@@ -1,0 +1,6 @@
+name: openclaw-infra
+runtime:
+  name: python
+  options:
+    virtualenv: venv
+description: Infraestructura AWS para desplegar un agente OpenClaw en EC2 (Free Tier)
