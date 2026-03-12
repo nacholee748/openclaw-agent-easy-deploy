@@ -57,7 +57,7 @@ Referencia: [aws.amazon.com/free](https://aws.amazon.com/free) | [Documentación
 ### 1. Preparar entorno
 
 ```bash
-cd iac/aws
+cd openclaw-infraestructure/iac-aws
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -91,7 +91,7 @@ El despliegue toma ~10 minutos (incluye compilación de OpenClaw).
 ### 4. Conectar
 
 ```bash
-# Guardar clave SSH
+# Guardar clave SSH (se guarda en esta misma carpeta, excluida del repo por .gitignore)
 pulumi stack output private_key_pem --show-secrets > openclaw-key.pem
 chmod 400 openclaw-key.pem
 
@@ -141,18 +141,19 @@ rm openclaw-key.pem
 | Security Group | openclaw-sg | Firewall |
 | EC2 Instance | openclaw-agent | Servidor con OpenClaw |
 
-## Comandos Útiles
+## Estructura
 
-```bash
-# Ver IP de la instancia
-pulumi stack output public_ip
-
-# Ver logs de instalación (en la instancia)
-sudo cat /var/log/openclaw-install.log
-
-# Ver logs de OpenClaw (en la instancia)
-journalctl -u openclaw -f
-
-# Reiniciar OpenClaw (en la instancia)
-sudo systemctl restart openclaw
 ```
+openclaw-infraestructure/iac-aws/
+├── __main__.py                  # Código Pulumi (infraestructura)
+├── Pulumi.yaml                  # Config del proyecto
+├── Pulumi.dev.yaml.example      # Ejemplo de config del stack
+├── Pulumi.dev.yaml              # Tu config (NO se versiona)
+├── requirements.txt             # Dependencias Python
+├── README.md                    # Este archivo
+├── openclaw-key.pem             # Clave SSH (NO se versiona)
+└── scripts/
+    └── install-openclaw.sh      # Script de instalación manual
+```
+
+> 📌 `openclaw-key.pem` y `Pulumi.dev.yaml` están en `.gitignore` por seguridad.

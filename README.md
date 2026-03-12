@@ -89,8 +89,8 @@ Usamos [Pulumi](https://www.pulumi.com/) (Python) para crear toda la infraestruc
 
 ```bash
 # 1. Clonar este repositorio
-git clone https://github.com/tu-usuario/openclaw-agent-easy-deploy.git
-cd openclaw-agent-easy-deploy/iac/aws
+git clone https://github.com/nacholee748/openclaw-agent-easy-deploy.git
+cd openclaw-agent-easy-deploy/openclaw-infraestructure/iac-aws
 
 # 2. Configurar entorno
 python3 -m venv venv
@@ -105,9 +105,16 @@ pulumi config set awsProfile tu-profile
 # 4. Desplegar (un solo comando)
 aws sso login --profile tu-profile
 AWS_PROFILE=tu-profile PULUMI_CONFIG_PASSPHRASE="" pulumi up --yes
+
+# 5. Guardar clave SSH (queda en openclaw-infraestructure/iac-aws/openclaw-key.pem)
+pulumi stack output private_key_pem --show-secrets > openclaw-key.pem
+chmod 400 openclaw-key.pem
+
+# 6. Conectar a la instancia
+ssh -i openclaw-key.pem ubuntu@$(pulumi stack output public_ip)
 ```
 
-📖 Instrucciones detalladas en [iac/aws/README.md](iac/aws/README.md)
+📖 Instrucciones detalladas en [openclaw-infraestructure/iac-aws/README.md](openclaw-infraestructure/iac-aws/README.md)
 
 ---
 
@@ -170,14 +177,15 @@ Referencia: [azure.microsoft.com/free](https://azure.microsoft.com/en-us/pricing
 
 ```bash
 # 1. Clonar este repositorio
-git clone https://github.com/tu-usuario/openclaw-agent-easy-deploy.git
+git clone https://github.com/nacholee748/openclaw-agent-easy-deploy.git
 cd openclaw-agent-easy-deploy
 
 # 2. Copiar y configurar tu archivo de entorno
-cp config/openclaw.env.example config/openclaw.env
-nano config/openclaw.env  # Agrega tu API key
+cp openclaw-config/openclaw.env.example openclaw-config/openclaw.env
+nano openclaw-config/openclaw.env  # Agrega tu API key
 
 # 3. Construir y ejecutar
+cd openclaw-infraestructure/docker
 docker compose up -d
 
 # 4. Ver logs
@@ -262,11 +270,11 @@ Si es tu primera vez, te recomendamos:
 
 ## Configuración
 
-El archivo `config/openclaw.env.example` contiene todas las opciones disponibles. Copia y edita:
+El archivo `openclaw-config/openclaw.env.example` contiene todas las opciones disponibles. Copia y edita:
 
 ```bash
-cp config/openclaw.env.example config/openclaw.env
-nano config/openclaw.env
+cp openclaw-config/openclaw.env.example openclaw-config/openclaw.env
+nano openclaw-config/openclaw.env
 ```
 
 Configuración mínima — solo necesitas una línea:
@@ -275,7 +283,7 @@ Configuración mínima — solo necesitas una línea:
 OPENAI_API_KEY=sk-tu-key-aqui
 ```
 
-Ver [config/openclaw.env.example](config/openclaw.env.example) para todas las opciones.
+Ver [openclaw-config/openclaw.env.example](openclaw-config/openclaw.env.example) para todas las opciones.
 
 ---
 
@@ -283,20 +291,32 @@ Ver [config/openclaw.env.example](config/openclaw.env.example) para todas las op
 
 ```
 openclaw-agent-easy-deploy/
-├── README.md                    # Esta guía
-├── docker-compose.yml           # Despliegue con Docker
-├── Dockerfile                   # Imagen de OpenClaw
-├── config/
-│   └── openclaw.env.example     # Template de configuración
-└── iac/                         # Infraestructura como Código
-    └── aws/                     # AWS (Pulumi + Python) ✅
-        ├── __main__.py
-        ├── Pulumi.yaml
-        ├── requirements.txt
-        ├── README.md
+├── README.md                                    # Esta guía
+├── CONTRIBUTING.md                              # Guía de contribución
+├── SECURITY.md                                  # Política de seguridad
+├── LICENSE                                      # Licencia MIT
+├── .gitignore                                   # Archivos excluidos del repo
+├── .editorconfig                                # Formato consistente
+├── openclaw-config/                             # Configuración de OpenClaw
+│   ├── openclaw.env.example                     # Template (se versiona)
+│   └── openclaw.env                             # Tu config real (NO se versiona)
+└── openclaw-infraestructure/                    # Infraestructura
+    ├── docker/                                  # Despliegue con Docker
+    │   ├── Dockerfile
+    │   └── docker-compose.yml
+    └── iac-aws/                                 # AWS con Pulumi (Python) ✅
+        ├── __main__.py                          # Código de infraestructura
+        ├── Pulumi.yaml                          # Config del proyecto
+        ├── Pulumi.dev.yaml.example              # Ejemplo de config del stack
+        ├── Pulumi.dev.yaml                      # Tu config del stack (NO se versiona)
+        ├── requirements.txt                     # Dependencias Python
+        ├── README.md                            # Instrucciones detalladas
+        ├── openclaw-key.pem                     # Clave SSH (NO se versiona)
         └── scripts/
-            └── install-openclaw.sh
+            └── install-openclaw.sh              # Script de instalación manual
 ```
+
+> 📌 Los archivos marcados con "NO se versiona" están en `.gitignore` por seguridad.
 
 ---
 
