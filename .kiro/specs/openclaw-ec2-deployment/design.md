@@ -152,15 +152,26 @@ Para cuentas AWS creadas después del 15 de julio de 2025, el Free Tier incluye:
 ## Estructura del Proyecto
 
 ```
-.
-├── README.md                # Guía principal de despliegue
-├── config/
-│   └── openclaw.env.example # Template de configuración
-└── iac/
-    └── aws/                 # Infraestructura AWS (Pulumi + Python)
-        ├── __main__.py
-        ├── Pulumi.yaml
-        ├── requirements.txt
+openclaw-agent-easy-deploy/
+├── README.md                                    # Guía principal de despliegue
+├── CONTEXT.md                                   # Contexto para retomar sesiones
+├── CONTRIBUTING.md                              # Guía de contribución
+├── SECURITY.md                                  # Política de seguridad
+├── LICENSE                                      # Licencia MIT
+├── openclaw-config/                             # Configuración de OpenClaw
+│   ├── openclaw.env.example                     # Template de variables de entorno
+│   ├── openclaw.json.example                    # Template de config del gateway
+│   └── openclaw.env                             # Config real (NO versionado)
+└── openclaw-infraestructure/                    # Infraestructura
+    ├── docker/                                  # Despliegue con Docker
+    │   ├── Dockerfile
+    │   └── docker-compose.yml
+    └── iac-aws/                                 # AWS con Pulumi (Python)
+        ├── __main__.py                          # Código Pulumi
+        ├── Pulumi.yaml                          # Config del proyecto
+        ├── Pulumi.dev.yaml.example              # Ejemplo de config del stack
+        ├── requirements.txt                     # Dependencias Python
+        ├── README.md                            # Instrucciones detalladas
         └── scripts/
-            └── install-openclaw.sh
+            └── install-openclaw.sh              # Script de instalación manual
 ```

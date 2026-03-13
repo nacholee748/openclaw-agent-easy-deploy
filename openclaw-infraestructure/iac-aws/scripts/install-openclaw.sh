@@ -244,7 +244,9 @@ EOF
         "primary": "${MODEL}"
       },
       "models": {
-        "${MODEL}": {}
+        "${MODEL}": {
+          "alias": "default"
+        }
       },
       "workspace": "${WORKSPACE_DIR}",
       "compaction": {

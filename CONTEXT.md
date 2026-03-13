@@ -26,11 +26,17 @@
 - Docker (Dockerfile + docker-compose.yml) listos
 - `.gitignore` configurado
 
+### ✅ Configuración automatizada
+
+- `openclaw.json` se genera automáticamente en el user-data y en `install-openclaw.sh`
+- Detecta proveedor según API key configurada en `.env`
+- Documentación completa de `openclaw.json` en el README y en `openclaw-config/openclaw.json.example`
+
 ### ⏸️ Pendiente
 
-- Probar con modelo `gemini-2.0-flash` (límites más generosos en free tier)
+- Probar despliegue limpio end-to-end (`pulumi destroy` + `pulumi up`)
 - Considerar OpenRouter como alternativa (modelos gratuitos disponibles)
-- Actualizar user-data en `__main__.py` para que futuros despliegues no requieran intervención manual (el actual tiene bugs del primer deploy)
+- Implementar despliegue para GCP y Azure
 
 ## Configuración de OpenClaw - Lo que aprendimos
 
@@ -55,15 +61,48 @@
    - Auth method: **Google Gemini API key**
    - Usa la `GEMINI_API_KEY` del `.env`
 
-2. El servicio systemd debe ejecutar `gateway` (no solo `run-node.mjs`):
+2. Alternativa sin wizard: copiar `openclaw.json.example` y editar manualmente.
+
+3. El servicio systemd debe ejecutar `gateway` (no solo `run-node.mjs`):
    ```
    ExecStart=/usr/bin/node scripts/run-node.mjs gateway
    ```
 
-3. Iniciar servicio:
+4. Iniciar servicio:
    ```bash
    sudo systemctl restart openclaw
    ```
+
+### Estructura de `openclaw.json`
+
+```json
+{
+  "wizard": { ... },           // Metadatos del wizard (no tocar)
+  "auth": {                    // Perfiles de autenticación
+    "profiles": {
+      "<proveedor>:default": { "provider": "<proveedor>", "mode": "api_key" }
+    }
+  },
+  "agents": {                  // Configuración de agentes
+    "defaults": {
+      "model": { "primary": "<proveedor>/<modelo>" },
+      "workspace": "/home/openclaw/.openclaw/workspace",
+      "compaction": { "mode": "safeguard" },
+      "maxConcurrent": 4,
+      "subagents": { "maxConcurrent": 8 }
+    }
+  },
+  "tools": {                   // Herramientas habilitadas
+    "web": { "search": { "enabled": true, "provider": "gemini" }, "fetch": { "enabled": true } }
+  },
+  "messages": { "ackReactionScope": "group-mentions" },
+  "commands": { "native": "auto", "nativeSkills": "auto", "restart": true, "ownerDisplay": "raw" },
+  "gateway": { "mode": "local" },
+  "meta": { ... }             // Metadatos internos (no tocar)
+}
+```
+
+Referencia completa en `openclaw-config/openclaw.json.example` y en el README.
 
 ### Cómo usar OpenClaw
 
@@ -120,6 +159,9 @@ AWS_PROFILE=nacholee aws ec2 describe-instances \
 
 ```bash
 ssh -i openclaw-infraestructure/iac-aws/openclaw-key.pem ubuntu@<IP_PUBLICA>
+
+# O con túnel SSH para acceder al dashboard:
+ssh -i openclaw-infraestructure/iac-aws/openclaw-key.pem -N -L 18789:127.0.0.1:18789 ubuntu@<IP_PUBLICA>
 ```
 
 ### Detener instancia
@@ -161,8 +203,12 @@ openclaw-agent-easy-deploy/
 ├── CONTEXT.md                          ← Este archivo
 ├── .gitignore
 ├── .editorconfig
+├── CONTRIBUTING.md
+├── SECURITY.md
+├── LICENSE
 ├── openclaw-config/
-│   ├── openclaw.env.example            # Template (versionado)
+│   ├── openclaw.env.example            # Template de variables de entorno (versionado)
+│   ├── openclaw.json.example           # Template de config del gateway (versionado)
 │   └── openclaw.env                    # Config real (NO versionado)
 ├── openclaw-infraestructure/
 │   ├── docker/

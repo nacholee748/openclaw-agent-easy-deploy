@@ -137,6 +137,8 @@ Implementación de infraestructura AWS usando Pulumi con Python para desplegar u
 
 ## File Paths
 
-- `iac/aws/__main__.py` - Código Pulumi (infraestructura)
-- `iac/aws/scripts/install-openclaw.sh` - Script de instalación
-- `config/openclaw.env.example` - Template de configuración
+- `openclaw-infraestructure/iac-aws/__main__.py` - Código Pulumi (infraestructura)
+- `openclaw-infraestructure/iac-aws/scripts/install-openclaw.sh` - Script de instalación manual
+- `openclaw-infraestructure/iac-aws/README.md` - Instrucciones detalladas de despliegue AWS
+- `openclaw-config/openclaw.env.example` - Template de variables de entorno
+- `openclaw-config/openclaw.json.example` - Template de config del gateway

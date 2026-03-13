@@ -298,7 +298,9 @@ cat > ${CONFIG_DIR}/openclaw.json << EOF
         "primary": "google/gemini-2.0-flash"
       },
       "models": {
-        "google/gemini-2.0-flash": {}
+        "google/gemini-2.0-flash": {
+          "alias": "gemini"
+        }
       },
       "workspace": "${WORKSPACE_DIR}",
       "compaction": { "mode": "safeguard" },

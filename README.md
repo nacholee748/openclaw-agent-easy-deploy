@@ -178,7 +178,179 @@ sudo su - openclaw -c "cd ~/openclaw && node scripts/run-node.mjs doctor"
 | `~/.openclaw/.env` | API keys y variables de entorno |
 | `~/.openclaw/openclaw.json` | Config del gateway y modelo (generado por `configure`) |
 
-> ⚠️ El `.env` solo no es suficiente. Debes ejecutar `configure` al menos una vez para generar `openclaw.json`.
+> ⚠️ El `.env` solo no es suficiente. Debes ejecutar `configure` al menos una vez para generar `openclaw.json`, o puedes crearlo manualmente usando el ejemplo en `openclaw-config/openclaw.json.example`.
+
+---
+
+## 📋 Referencia de `openclaw.json`
+
+El archivo `openclaw.json` es la configuración principal de OpenClaw. Se genera al ejecutar `configure`, pero también puedes crearlo o editarlo manualmente. Ubicación: `~/.openclaw/openclaw.json`.
+
+Un ejemplo completo está disponible en [`openclaw-config/openclaw.json.example`](openclaw-config/openclaw.json.example).
+
+### Comandos útiles para gestionar la configuración
+
+```bash
+# Ver ruta del archivo de configuración activo
+openclaw config file
+
+# Ver un valor específico (notación con puntos)
+openclaw config get agents.defaults.model.primary
+
+# Ver una sección completa
+openclaw config get agents
+openclaw config get tools
+openclaw config get gateway
+
+# Cambiar un valor
+openclaw config set agents.defaults.model.primary google/gemini-2.0-flash
+
+# Eliminar un valor
+openclaw config unset tools.web.search.provider
+
+# Validar la configuración contra el schema
+openclaw config validate
+
+# Ver modelos configurados
+openclaw models list
+
+# Escanear modelos disponibles en el proveedor
+openclaw models scan
+
+# Re-ejecutar el wizard interactivo
+openclaw configure
+```
+
+### Secciones del archivo
+
+#### `wizard` — Metadatos del wizard
+
+Información interna sobre la última ejecución del wizard. No necesitas modificarla manualmente.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `lastRunAt` | string (ISO 8601) | Fecha de última ejecución |
+| `lastRunVersion` | string | Versión de OpenClaw usada |
+| `lastRunCommand` | string | Comando que generó la config (`configure`) |
+| `lastRunMode` | string | Modo seleccionado (`local`) |
+
+#### `auth` — Autenticación con proveedores de IA
+
+Define cómo OpenClaw se autentica con cada proveedor. Las API keys van en el `.env`, aquí solo se define el método de autenticación.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `profiles` | object | Mapa de perfiles de autenticación |
+| `profiles.<proveedor>:<nombre>` | object | Perfil individual |
+| `profiles.<...>.provider` | string | Proveedor: `google`, `openai`, `anthropic`, `openrouter` |
+| `profiles.<...>.mode` | string | Método: `api_key`, `oauth` |
+
+Ejemplos de perfiles:
+
+```json
+"auth": {
+  "profiles": {
+    "google:default": { "provider": "google", "mode": "api_key" },
+    "openai:default": { "provider": "openai", "mode": "api_key" },
+    "anthropic:default": { "provider": "anthropic", "mode": "api_key" },
+    "openrouter:default": { "provider": "openrouter", "mode": "api_key" }
+  }
+}
+```
+
+#### `agents` — Configuración de agentes
+
+| Campo | Tipo | Default | Descripción |
+|-------|------|---------|-------------|
+| `defaults.model.primary` | string | — | Modelo principal. Formato: `<proveedor>/<modelo>` |
+| `defaults.models` | object | `{}` | Config específica por modelo |
+| `defaults.models.<modelo>.alias` | string | — | Alias corto para el modelo (ej: `gemini`). Permite referenciarlo por alias en CLI |
+| `defaults.workspace` | string | `~/.openclaw/workspace` | Directorio de trabajo del agente |
+| `defaults.compaction.mode` | string | `safeguard` | Compactación de contexto cuando se llena la ventana |
+| `defaults.maxConcurrent` | number | `4` | Máximo de agentes en paralelo |
+| `defaults.subagents.maxConcurrent` | number | `8` | Máximo de sub-agentes en paralelo |
+
+Modelos disponibles (formato `proveedor/modelo`):
+
+| Proveedor | Modelos | Notas |
+|-----------|---------|-------|
+| `google` | `google/gemini-2.0-flash`, `google/gemini-3.1-pro-preview` | Flash tiene límites más generosos en free tier |
+| `openai` | `openai/gpt-4o`, `openai/gpt-4o-mini` | Requiere créditos |
+| `anthropic` | `anthropic/claude-3-5-sonnet`, `anthropic/claude-3-haiku` | Requiere créditos |
+| `openrouter` | `openrouter/google/gemini-2.0-flash-exp:free` | Modelos gratuitos disponibles |
+
+> 💡 Para ver todos los modelos configurados: `openclaw models list`
+> Para escanear modelos disponibles en tu proveedor: `openclaw models scan` (requiere `OPENROUTER_API_KEY` para OpenRouter)
+> Los modelos pueden tener un `alias` para referenciarlos de forma corta (ej: `alias: "gemini"` permite usar `gemini` en lugar del nombre completo)
+
+#### `tools` — Herramientas del agente
+
+| Campo | Tipo | Default | Descripción |
+|-------|------|---------|-------------|
+| `web.search.enabled` | boolean | `true` | Habilitar búsqueda web |
+| `web.search.provider` | string | `gemini` | Proveedor de búsqueda: `gemini`, `openai` |
+| `web.fetch.enabled` | boolean | `true` | Habilitar fetch de URLs |
+
+#### `messages` — Configuración de mensajes
+
+| Campo | Tipo | Default | Descripción |
+|-------|------|---------|-------------|
+| `ackReactionScope` | string | `group-mentions` | Alcance de reacciones de confirmación |
+
+#### `commands` — Ejecución de comandos
+
+| Campo | Tipo | Default | Descripción |
+|-------|------|---------|-------------|
+| `native` | string | `auto` | Ejecución de comandos nativos del sistema |
+| `nativeSkills` | string | `auto` | Habilidades nativas (skills) |
+| `restart` | boolean | `true` | Permitir reinicio del agente |
+| `ownerDisplay` | string | `raw` | Cómo mostrar el propietario de comandos |
+
+#### `gateway` — Servidor WebSocket
+
+| Campo | Tipo | Default | Descripción |
+|-------|------|---------|-------------|
+| `mode` | string | `local` | Modo de operación del gateway |
+
+Opciones adicionales del gateway (se pasan como flags CLI al iniciar):
+
+| Flag | Valores | Descripción |
+|------|---------|-------------|
+| `--port <port>` | número | Puerto WebSocket (default: `18789`) |
+| `--bind <mode>` | `loopback`, `lan`, `tailnet`, `auto`, `custom` | Modo de binding de red |
+| `--auth <mode>` | `none`, `token`, `password`, `trusted-proxy` | Modo de autenticación |
+| `--token <token>` | string | Token compartido (o usa `OPENCLAW_GATEWAY_TOKEN` del `.env`) |
+| `--password <pass>` | string | Password para `auth=password` |
+| `--tailscale <mode>` | `off`, `serve`, `funnel` | Integración con Tailscale |
+| `--verbose` | — | Logging detallado |
+| `--force` | — | Matar listener existente en el puerto |
+
+#### `meta` — Metadatos internos
+
+Información interna de OpenClaw. No necesitas modificarla.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `lastTouchedVersion` | string | Última versión que modificó el archivo |
+| `lastTouchedAt` | string (ISO 8601) | Fecha de última modificación |
+
+### Ejemplo: Cambiar de proveedor
+
+Si quieres cambiar de Google Gemini a OpenAI:
+
+```bash
+# 1. Agregar API key al .env
+echo "OPENAI_API_KEY=sk-tu-key" >> ~/.openclaw/.env
+
+# 2. Cambiar modelo y auth
+openclaw config set agents.defaults.model.primary openai/gpt-4o
+
+# 3. O re-ejecutar el wizard
+openclaw configure
+
+# 4. Reiniciar gateway
+sudo systemctl restart openclaw
+```
 
 ---
 
@@ -362,7 +534,8 @@ openclaw-agent-easy-deploy/
 ├── .gitignore                                   # Archivos excluidos del repo
 ├── .editorconfig                                # Formato consistente
 ├── openclaw-config/                             # Configuración de OpenClaw
-│   ├── openclaw.env.example                     # Template (se versiona)
+│   ├── openclaw.env.example                     # Template de variables de entorno
+│   ├── openclaw.json.example                    # Template de config del gateway
 │   └── openclaw.env                             # Tu config real (NO se versiona)
 └── openclaw-infraestructure/                    # Infraestructura
     ├── docker/                                  # Despliegue con Docker
