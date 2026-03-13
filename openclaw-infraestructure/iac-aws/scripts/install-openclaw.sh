@@ -141,18 +141,19 @@ create_config() {
     
     CONFIG_DIR="${OPENCLAW_HOME}/.openclaw"
     ENV_FILE="${CONFIG_DIR}/.env"
+    JSON_FILE="${CONFIG_DIR}/openclaw.json"
+    WORKSPACE_DIR="${CONFIG_DIR}/workspace"
+    SESSIONS_DIR="${CONFIG_DIR}/agents/main/sessions"
     
-    su - ${OPENCLAW_USER} -c "mkdir -p ${CONFIG_DIR}"
+    su - ${OPENCLAW_USER} -c "mkdir -p ${CONFIG_DIR} ${WORKSPACE_DIR} ${SESSIONS_DIR}"
     
+    # --- .env (API keys) ---
     if [ -f "${ENV_FILE}" ]; then
-        log_warn "Archivo de configuración ya existe, no se sobrescribirá"
-        return
-    fi
-    
-    # Generar token aleatorio
-    GATEWAY_TOKEN=$(openssl rand -hex 32)
-    
-    cat > ${ENV_FILE} << EOF
+        log_warn "Archivo .env ya existe, no se sobrescribirá"
+    else
+        GATEWAY_TOKEN=$(openssl rand -hex 32)
+        
+        cat > ${ENV_FILE} << EOF
 # =============================================================================
 # OpenClaw Configuration
 # =============================================================================
@@ -181,22 +182,114 @@ OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN}
 # -----------------------------------------------------------------------------
 # Ejemplos: gpt-4o, gpt-4o-mini, claude-3-5-sonnet, gemini-2.0-flash
 # OPENCLAW_DEFAULT_MODEL=gemini-2.0-flash
-
-# -----------------------------------------------------------------------------
-# Configuración opcional
-# -----------------------------------------------------------------------------
-
-# Directorio de estado (default: ~/.openclaw)
-# OPENCLAW_STATE_DIR=~/.openclaw
-
-# Cargar variables de entorno del shell
-# OPENCLAW_LOAD_SHELL_ENV=1
 EOF
 
-    chown ${OPENCLAW_USER}:${OPENCLAW_USER} ${ENV_FILE}
-    chmod 600 ${ENV_FILE}
+        chown ${OPENCLAW_USER}:${OPENCLAW_USER} ${ENV_FILE}
+        chmod 600 ${ENV_FILE}
+        log_info ".env creado en ${ENV_FILE}"
+    fi
     
-    log_info "Configuración creada en ${ENV_FILE}"
+    # --- openclaw.json (config del gateway, modelo, etc.) ---
+    if [ -f "${JSON_FILE}" ]; then
+        log_warn "openclaw.json ya existe, no se sobrescribirá"
+    else
+        CURRENT_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+        OPENCLAW_VERSION=$(su - ${OPENCLAW_USER} -c "cd ${OPENCLAW_DIR} && node scripts/run-node.mjs --version 2>/dev/null" || echo "unknown")
+        
+        # Detectar proveedor y modelo según API key configurada
+        PROVIDER="google"
+        AUTH_MODE="api_key"
+        MODEL="google/gemini-2.0-flash"
+        SEARCH_PROVIDER="gemini"
+        
+        if grep -q "^OPENAI_API_KEY=" "${ENV_FILE}" 2>/dev/null; then
+            PROVIDER="openai"
+            MODEL="openai/gpt-4o-mini"
+            SEARCH_PROVIDER="openai"
+        elif grep -q "^ANTHROPIC_API_KEY=" "${ENV_FILE}" 2>/dev/null; then
+            PROVIDER="anthropic"
+            MODEL="anthropic/claude-3-5-sonnet"
+            SEARCH_PROVIDER="gemini"
+        elif grep -q "^OPENROUTER_API_KEY=" "${ENV_FILE}" 2>/dev/null; then
+            PROVIDER="openrouter"
+            MODEL="openrouter/google/gemini-2.0-flash-exp:free"
+            SEARCH_PROVIDER="gemini"
+        fi
+        
+        # Respetar OPENCLAW_DEFAULT_MODEL si está definido en .env
+        CUSTOM_MODEL=$(grep "^OPENCLAW_DEFAULT_MODEL=" "${ENV_FILE}" 2>/dev/null | cut -d'=' -f2)
+        if [ -n "${CUSTOM_MODEL}" ]; then
+            MODEL="${CUSTOM_MODEL}"
+        fi
+        
+        cat > ${JSON_FILE} << EOF
+{
+  "wizard": {
+    "lastRunAt": "${CURRENT_DATE}",
+    "lastRunVersion": "${OPENCLAW_VERSION}",
+    "lastRunCommand": "configure",
+    "lastRunMode": "local"
+  },
+  "auth": {
+    "profiles": {
+      "${PROVIDER}:default": {
+        "provider": "${PROVIDER}",
+        "mode": "${AUTH_MODE}"
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "${MODEL}"
+      },
+      "models": {
+        "${MODEL}": {}
+      },
+      "workspace": "${WORKSPACE_DIR}",
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "maxConcurrent": 4,
+      "subagents": {
+        "maxConcurrent": 8
+      }
+    }
+  },
+  "tools": {
+    "web": {
+      "search": {
+        "enabled": true,
+        "provider": "${SEARCH_PROVIDER}"
+      },
+      "fetch": {
+        "enabled": true
+      }
+    }
+  },
+  "messages": {
+    "ackReactionScope": "group-mentions"
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "gateway": {
+    "mode": "local"
+  },
+  "meta": {
+    "lastTouchedVersion": "${OPENCLAW_VERSION}",
+    "lastTouchedAt": "${CURRENT_DATE}"
+  }
+}
+EOF
+
+        chown ${OPENCLAW_USER}:${OPENCLAW_USER} ${JSON_FILE}
+        chmod 600 ${JSON_FILE}
+        log_info "openclaw.json creado (provider: ${PROVIDER}, model: ${MODEL})"
+    fi
 }
 
 # -----------------------------------------------------------------------------
@@ -249,21 +342,19 @@ show_instructions() {
     echo ""
     echo "1. Configura tu API key:"
     echo "   sudo nano /home/${OPENCLAW_USER}/.openclaw/.env"
+    echo "   (Descomenta y agrega tu API key)"
     echo ""
-    echo "2. Descomenta y agrega tu API key (OpenAI, Anthropic, etc.)"
+    echo "2. Inicia el servicio:"
+    echo "   sudo systemctl restart openclaw"
     echo ""
-    echo "3. Inicia el servicio:"
-    echo "   sudo systemctl start openclaw"
-    echo ""
-    echo "4. Verifica el estado:"
+    echo "3. Verifica el estado:"
     echo "   sudo systemctl status openclaw"
     echo ""
-    echo "5. Ver logs:"
-    echo "   journalctl -u openclaw -f"
+    echo "4. Abre el chat interactivo:"
+    echo "   sudo su - ${OPENCLAW_USER} -c 'cd ~/openclaw && node scripts/run-node.mjs tui'"
     echo ""
-    echo "Para ejecutar manualmente:"
-    echo "   sudo su - ${OPENCLAW_USER}"
-    echo "   cd ~/openclaw && pnpm start"
+    echo "Nota: Si cambias de proveedor (OpenAI, Anthropic, etc.),"
+    echo "      ejecuta: sudo su - ${OPENCLAW_USER} -c 'cd ~/openclaw && node scripts/run-node.mjs configure'"
     echo ""
     echo "=========================================="
 }

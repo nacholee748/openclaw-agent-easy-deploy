@@ -118,6 +118,70 @@ ssh -i openclaw-key.pem ubuntu@$(pulumi stack output public_ip)
 
 ---
 
+## 🔧 Configuración Inicial de OpenClaw
+
+Una vez que tengas OpenClaw instalado (ya sea en AWS, Docker o local), sigue estos pasos para configurarlo.
+
+### 1. Ejecutar el wizard de configuración
+
+OpenClaw necesita una configuración inicial interactiva que crea el archivo `openclaw.json`:
+
+```bash
+# En la instancia o máquina donde está instalado:
+sudo su - openclaw -c "cd ~/openclaw && node scripts/run-node.mjs configure"
+```
+
+El wizard te preguntará:
+
+| Pregunta | Respuesta recomendada |
+|----------|----------------------|
+| Where will the Gateway run? | **Local (this machine)** |
+| Select sections to configure | **Workspace** (primero), luego **Model** |
+| Workspace directory | Dejar default: `~/.openclaw/workspace` |
+| Model/auth provider | Según tu API key (Google, OpenAI, Anthropic) |
+| Auth method | API key |
+| API key | Usa la del `.env` o pégala directamente |
+
+Cuando termine de pedir secciones, selecciona salir.
+
+### 2. Iniciar el gateway
+
+```bash
+# Si usas systemd (AWS EC2)
+sudo systemctl restart openclaw
+sudo systemctl status openclaw
+
+# Si ejecutas manualmente
+sudo su - openclaw -c "cd ~/openclaw && node scripts/run-node.mjs gateway"
+```
+
+### 3. Usar OpenClaw
+
+```bash
+# Chat interactivo (TUI)
+sudo su - openclaw -c "cd ~/openclaw && node scripts/run-node.mjs tui"
+
+# Health check
+sudo su - openclaw -c "cd ~/openclaw && node scripts/run-node.mjs health"
+
+# Cambiar modelo
+sudo su - openclaw -c "cd ~/openclaw && node scripts/run-node.mjs config set model google/gemini-2.0-flash"
+
+# Diagnóstico
+sudo su - openclaw -c "cd ~/openclaw && node scripts/run-node.mjs doctor"
+```
+
+### Archivos de configuración
+
+| Archivo | Propósito |
+|---------|-----------|
+| `~/.openclaw/.env` | API keys y variables de entorno |
+| `~/.openclaw/openclaw.json` | Config del gateway y modelo (generado por `configure`) |
+
+> ⚠️ El `.env` solo no es suficiente. Debes ejecutar `configure` al menos una vez para generar `openclaw.json`.
+
+---
+
 ## ☁️ Google Cloud (GCP)
 
 **Ideal si**: Quieres una instancia gratuita permanente (no expira).

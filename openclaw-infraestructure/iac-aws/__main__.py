@@ -251,43 +251,84 @@ su - ${OPENCLAW_USER} -c "cd ${OPENCLAW_DIR} && pnpm build"
 # -----------------------------------------------------------------------------
 echo "[6/7] Creando configuración..."
 CONFIG_DIR="${OPENCLAW_HOME}/.openclaw"
-su - ${OPENCLAW_USER} -c "mkdir -p ${CONFIG_DIR}"
+WORKSPACE_DIR="${CONFIG_DIR}/workspace"
+SESSIONS_DIR="${CONFIG_DIR}/agents/main/sessions"
+su - ${OPENCLAW_USER} -c "mkdir -p ${CONFIG_DIR} ${WORKSPACE_DIR} ${SESSIONS_DIR}"
 
 GATEWAY_TOKEN=$(openssl rand -hex 32)
+CURRENT_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
 
 cat > ${CONFIG_DIR}/.env << EOF
-# =============================================================================
 # OpenClaw Configuration
-# =============================================================================
-
-# Token de autenticación para el gateway
 OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN}
 
-# -----------------------------------------------------------------------------
 # API Keys - Descomenta y configura al menos una:
-# -----------------------------------------------------------------------------
-
-# OpenAI
 # OPENAI_API_KEY=sk-...
-
-# Anthropic (Claude)
 # ANTHROPIC_API_KEY=sk-ant-...
-
-# Google Gemini
 # GEMINI_API_KEY=...
-
-# OpenRouter (acceso a múltiples modelos)
 # OPENROUTER_API_KEY=sk-or-...
 
-# -----------------------------------------------------------------------------
 # Modelo por defecto
-# -----------------------------------------------------------------------------
-# Ejemplos: gpt-4o, gpt-4o-mini, claude-3-5-sonnet, gemini-2.0-flash
 # OPENCLAW_DEFAULT_MODEL=gemini-2.0-flash
 EOF
 
 chown ${OPENCLAW_USER}:${OPENCLAW_USER} ${CONFIG_DIR}/.env
 chmod 600 ${CONFIG_DIR}/.env
+
+# Precargar openclaw.json (evita tener que ejecutar 'configure' manualmente)
+cat > ${CONFIG_DIR}/openclaw.json << EOF
+{
+  "wizard": {
+    "lastRunAt": "${CURRENT_DATE}",
+    "lastRunVersion": "auto",
+    "lastRunCommand": "configure",
+    "lastRunMode": "local"
+  },
+  "auth": {
+    "profiles": {
+      "google:default": {
+        "provider": "google",
+        "mode": "api_key"
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "google/gemini-2.0-flash"
+      },
+      "models": {
+        "google/gemini-2.0-flash": {}
+      },
+      "workspace": "${WORKSPACE_DIR}",
+      "compaction": { "mode": "safeguard" },
+      "maxConcurrent": 4,
+      "subagents": { "maxConcurrent": 8 }
+    }
+  },
+  "tools": {
+    "web": {
+      "search": { "enabled": true, "provider": "gemini" },
+      "fetch": { "enabled": true }
+    }
+  },
+  "messages": { "ackReactionScope": "group-mentions" },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "gateway": { "mode": "local" },
+  "meta": {
+    "lastTouchedVersion": "auto",
+    "lastTouchedAt": "${CURRENT_DATE}"
+  }
+}
+EOF
+
+chown ${OPENCLAW_USER}:${OPENCLAW_USER} ${CONFIG_DIR}/openclaw.json
+chmod 600 ${CONFIG_DIR}/openclaw.json
 
 # -----------------------------------------------------------------------------
 # 7. Crear servicio systemd

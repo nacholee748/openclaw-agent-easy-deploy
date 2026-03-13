@@ -101,20 +101,32 @@ ssh -i openclaw-key.pem ubuntu@$(pulumi stack output public_ip)
 
 También puedes conectarte desde la consola AWS usando **Session Manager** (EC2 → Instances → Connect).
 
-### 5. Configurar API Key
+### 5. Configurar OpenClaw
 
 ```bash
-# En la instancia:
-sudo nano /home/openclaw/.openclaw/.env
+# Ejecutar wizard de configuración (crea openclaw.json)
+sudo su - openclaw -c "cd ~/openclaw && node scripts/run-node.mjs configure"
 
-# Descomenta y agrega tu API key, por ejemplo:
-# OPENAI_API_KEY=sk-tu-key-aqui
+# Seleccionar:
+# - Gateway: Local (this machine)
+# - Sections: Workspace, luego Model
+# - Provider: Google (o el de tu API key)
+# - Auth: API key
+# - Usa la key del .env
 
-# Iniciar OpenClaw
-sudo systemctl start openclaw
-
-# Verificar
+# Reiniciar servicio
+sudo systemctl restart openclaw
 sudo systemctl status openclaw
+```
+
+### 6. Usar OpenClaw
+
+```bash
+# Chat interactivo
+sudo su - openclaw -c "cd ~/openclaw && node scripts/run-node.mjs tui"
+
+# Health check
+sudo su - openclaw -c "cd ~/openclaw && node scripts/run-node.mjs health"
 ```
 
 ## Limpieza
