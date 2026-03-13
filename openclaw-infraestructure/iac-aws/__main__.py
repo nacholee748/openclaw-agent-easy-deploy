@@ -2,7 +2,8 @@
 OpenClaw EC2 Deployment - Infraestructura con Pulumi (Python)
 
 Este script crea la infraestructura necesaria para desplegar un agente OpenClaw
-en una instancia EC2 t2.micro dentro del Free Tier de AWS.
+en una instancia EC2 m7i-flex.large (8GB RAM) dentro del Free Tier extendido de AWS
+(cuentas creadas después del 15 de julio de 2025).
 """
 
 import pulumi
@@ -277,6 +278,12 @@ OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN}
 
 # OpenRouter (acceso a múltiples modelos)
 # OPENROUTER_API_KEY=sk-or-...
+
+# -----------------------------------------------------------------------------
+# Modelo por defecto
+# -----------------------------------------------------------------------------
+# Ejemplos: gpt-4o, gpt-4o-mini, claude-3-5-sonnet, gemini-2.0-flash
+# OPENCLAW_DEFAULT_MODEL=gemini-2.0-flash
 EOF
 
 chown ${OPENCLAW_USER}:${OPENCLAW_USER} ${CONFIG_DIR}/.env
