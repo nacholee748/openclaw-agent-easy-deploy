@@ -303,7 +303,7 @@ After=network.target
 Type=simple
 User=${OPENCLAW_USER}
 WorkingDirectory=${OPENCLAW_DIR}
-ExecStart=/usr/bin/node scripts/run-node.mjs
+ExecStart=/usr/bin/node scripts/run-node.mjs gateway
 Restart=always
 RestartSec=10
 Environment=NODE_ENV=production
